@@ -10,6 +10,7 @@ lazy val baseSettings = Seq(
     , "-deprecation"
     , "-Xfatal-warnings"
     , "-Ypartial-unification"
+    , "-language:implicitConversions"
     , "-language:higherKinds"
   )
   , resourceDirectory in Compile := baseDirectory.value / "resources"
@@ -23,6 +24,8 @@ lazy val catsVersion       = "2.0.0"
 lazy val fs2Version        = "2.1.0"
 lazy val pureConfigVersion = "0.12.2"
 lazy val newTypeVersion    = "0.4.3"
+
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 
 lazy val deps = Seq(
     "org.http4s"            %% "http4s-blaze-server"      % http4sVersion

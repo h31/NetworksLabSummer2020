@@ -1,3 +1,4 @@
+import algebras.AsyncDownloader
 import cats.effect.{Concurrent, ConcurrentEffect, Timer}
 import fs2._
 import http.HttpApi
@@ -13,6 +14,7 @@ object Server {
   def blazeHttp[F[_]: Timer](cfg: ServerConfig)(implicit C: ConcurrentEffect[F]): F[Server[F]] = C.delay {
     api: HttpApi[F] =>
       for {
+        downloader <- Stream.eval(AsyncDownloader.make[F]).flatMap(Stream.resource)
         _ <- BlazeServerBuilder[F]
               .withHttpApp(api.httpAppWithLg)
               .serve

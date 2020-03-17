@@ -1,14 +1,14 @@
 package algebras
 
-import java.net.URL
-
-import cats.effect.{ConcurrentEffect, Resource}
-import domain.page.Page
+import cats.effect.{ConcurrentEffect, Resource, Sync}
+import domain.page.{Content, Page}
+import org.http4s.{Request, Uri}
 import org.http4s.client.Client
 import org.http4s.client.asynchttpclient.AsyncHttpClient
+import fs2._
 
 trait Downloader[F[_]] {
-  def fetch(url: URL): F[Option[Page]]
+  def fetchPage(url: Uri): F[Option[Page]]
 }
 
 /**
@@ -17,15 +17,24 @@ trait Downloader[F[_]] {
   * pure [[org.http4s.client.Client]]
   */
 object AsyncDownloader {
-  def make[F[_]]()(implicit C: ConcurrentEffect[F]): F[Resource[F, Downloader[F]]] =
+  def make[F[_]](implicit C: ConcurrentEffect[F]): F[Resource[F, Downloader[F]]] =
     C.delay(
         AsyncHttpClient.resource[F]().map(new AsyncDownloader[F](_))
     )
-  // TODO maybe inline
 }
 
-final class AsyncDownloader[F[_]] private (asyncHttp: Client[F]) extends Downloader[F] {
-  def fetch(url: URL): F[Option[Page]] = ???
+final class AsyncDownloader[F[_]: Sync] private (asyncHttp: Client[F]) extends Downloader[F] {
+  def fetchPage(uri: Uri): F[Option[Page]] =
+    asyncHttp
+      .run(Request(uri = uri))
+      .evalMap { resp =>
+        resp.body
+          .through(text.utf8Decode)
+          .compile
+          .toList
+      }
+      .map(list => Some(Page(Content(list.mkString("\n")))))
+      .use(Sync[F].pure(_))
 }
 
 /**

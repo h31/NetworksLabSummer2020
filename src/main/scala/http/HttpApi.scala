@@ -9,10 +9,11 @@ import org.http4s.server.middleware.{RequestLogger, ResponseLogger}
 import org.http4s.{HttpApp, HttpRoutes}
 
 object HttpApi {
-  def apply[F[_]](implicit C: Concurrent[F]): F[HttpApi[F]] = C.delay(new HttpApi())
+  def apply[F[_]](implicit C: Concurrent[F]): F[HttpApi[F]] =
+    C.delay(new HttpApi)
 }
 
-final class HttpApi[F[_]: Concurrent] private () {
+final class HttpApi[F[_]: Concurrent] private {
   private val pagesRoutes    = new PagesRoutes[F].routes
   private val downloadRoutes = new DownloadRoutes[F].routes
 
