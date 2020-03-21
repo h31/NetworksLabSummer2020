@@ -1,4 +1,6 @@
 .idea
+target/
 
-#folder for uploading files
-src/main/resources/downloaded
+src/main/resources/
+
+!src/main/resources/static
