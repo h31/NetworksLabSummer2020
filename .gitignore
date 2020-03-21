@@ -1,6 +1,5 @@
 .idea
 target/
 
-src/main/resources/
-
-!src/main/resources/static
+src/main/resources/downloaded
+src/main/resources/settings
