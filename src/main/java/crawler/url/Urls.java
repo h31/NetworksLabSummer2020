@@ -11,8 +11,10 @@ public class Urls {
         return url.split("://")[0];
     }
 
-    static String extractHostName(String url) {
-        return url.split("://")[1].split("/")[0];
+    public static String extractHostName(String url) {
+        return url.split("://").length == 1 ?
+                url.split("/")[0] :
+                url.split("://")[1].split("/")[0];
     }
 
     static String extractPath(String url) {
@@ -42,7 +44,7 @@ public class Urls {
         return new Url(firstUrl).isRelated(new Url(secondUrl));
     }
 
-    static String getFileName(String url) {
+    public static String getFileName(String url) {
         String[] pathParts = extractPath(url).split("/");
 
         if (pathParts[pathParts.length - 1].contains(".")) {
@@ -54,5 +56,28 @@ public class Urls {
 
     public static String removeFileName(String url) {
         return url.replaceFirst(getFileName(url), "");
+    }
+
+    private static String removeLastPart(String urlPath) {
+        return urlPath.substring(0, urlPath.length() - urlPath.split("/")[0].length());
+    }
+
+    public static String reach(String src, String dst) {
+        src = removeFileName(removeQuery(removeHash(src)));
+
+        while (dst.startsWith("../")) {
+            dst = dst.replaceFirst("../", "");
+            src = removeLastPart(src);
+        }
+
+        if (!src.endsWith("/")) {
+            src = src.concat("/");
+        }
+
+        if (dst.startsWith("/")) {
+            dst = dst.replaceFirst("/", "");
+        }
+
+        return src.concat(dst);
     }
 }

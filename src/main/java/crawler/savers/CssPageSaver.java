@@ -16,6 +16,7 @@ import com.helger.commons.io.resource.URLResource;
 import com.helger.css.decl.visit.DefaultCSSUrlVisitor;
 import com.helger.css.decl.CSSExpressionMemberTermURI;
 
+import java.io.File;
 import java.net.URL;
 import java.io.FileWriter;
 import java.nio.file.Files;
@@ -42,6 +43,9 @@ public class CssPageSaver extends Saver {
 
         if (Files.exists(Paths.get(savingPath))) {
             return null;
+        } else {
+            new File(Urls.removeFileName(savingPath)).mkdirs();
+            new File(savingPath).createNewFile();
         }
 
         //load css file
@@ -72,7 +76,7 @@ public class CssPageSaver extends Saver {
             public void onImport(@Nonnull CSSImportRule aImportRule) {
                 result.add(
                         new Url(
-                                currentUrl.getRoot() + "/" +
+                                Urls.removeFileName(currentUrl.toString()) +
                                         aImportRule.getLocationString().replaceFirst("^/", "")
                         )
                 );
@@ -95,19 +99,17 @@ public class CssPageSaver extends Saver {
             public void onUrlDeclaration(@Nullable ICSSTopLevelRule aTopLevelRule,
                                          @Nonnull CSSDeclaration aDeclaration,
                                          @Nonnull CSSExpressionMemberTermURI aURITerm) {
+                String fileUrl = aURITerm.getURIString();
+
                 result.add(
-                        new Url(
-                                currentUrl.removeFileName().toString() +
-                                        aURITerm.getURIString().replaceAll("^/", "")
-                        )
+                        new Url(Urls.reach(currentUrl.toString(), fileUrl.replaceAll("^/", "")))
                 );
 
                 aURITerm.setURIString(
-                        aURITerm.getURIString().startsWith("/") ?
+                        fileUrl.startsWith("/") ?
                                 "/" + currentUrl.getHostName() + "/" +
-                                        aURITerm.getURIString().replaceAll("^/", "") :
-                        currentUrl.removeFileName().toString() +
-                                aURITerm.getURIString().replaceAll("^/", "")
+                                        fileUrl.replaceAll("^/", "") :
+                        fileUrl
                 );
             }
         });

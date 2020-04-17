@@ -16,16 +16,18 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import configFileReader.ConfigFileReader;
+import pageBuilder.IndexPageBuilder;
 
 import java.io.FileNotFoundException;
 
 public class WebPageSaver extends Saver {
 
+    private IndexPageBuilder listPageBuilder;
+    private int currentSearchDepth;
     private Document document;
     private String savingPath;
-    private int currentSearchDepth;
-    private Url currentUrl;
     private String fileName;
+    private Url currentUrl;
 
     private final String DEFAULT_FILE_NAME = "index.html";
 
@@ -33,6 +35,7 @@ public class WebPageSaver extends Saver {
         this.currentUrl = currentUrl;
         this.programConfig = programConfig;
         this.currentSearchDepth = currentSearchDepth;
+        this.listPageBuilder = IndexPageBuilder.getInstance();
         this.fileName = currentUrl.getFileName().equals("") ? DEFAULT_FILE_NAME : currentUrl.getFileName();
         this.savingPath = programConfig.getParameter("savingFolder") + "/" +
                 Urls.removeScheme(Urls.removeFileName(currentUrl.toString()));
@@ -56,6 +59,7 @@ public class WebPageSaver extends Saver {
         downloadWebPage();
         result = createSavers();
         saveWebPage();
+        listPageBuilder.addUrl(Urls.removeScheme(currentUrl.toString()));
 
         return result;
     }

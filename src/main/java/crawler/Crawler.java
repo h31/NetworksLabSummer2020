@@ -10,11 +10,11 @@ import java.util.ArrayDeque;
 import java.io.BufferedReader;
 import configFileReader.ConfigFileReader;
 import crawler.url.Url;
+import pageBuilder.IndexPageBuilder;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ExecutionException;
 
 public class Crawler {
 
@@ -22,9 +22,11 @@ public class Crawler {
     private ArrayList<String> initialLinks;
     private ConfigFileReader configFileReader;
     private ArrayDeque<Future<ArrayList<Saver>>> futures;
+    private IndexPageBuilder listPageBuilder;
 
     public Crawler(ConfigFileReader configFileReader) {
         this.configFileReader = configFileReader;
+        this.listPageBuilder = IndexPageBuilder.getInstance();
     }
 
     public void run() throws IOException {
@@ -36,6 +38,7 @@ public class Crawler {
         waitForFutures();
 
         service.shutdown();
+        listPageBuilder.saveToFile("src/main/resources/downloaded/index.html");
     }
 
     private void submitInitialLinks() {
@@ -56,7 +59,7 @@ public class Crawler {
 
                     futures.removeFirst();
                 }
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (Exception e) {
                 futures.removeFirst();
                 e.printStackTrace();
             }

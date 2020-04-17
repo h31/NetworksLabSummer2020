@@ -100,7 +100,9 @@ public class Url {
 
 
     public String getHostName() {
-        return url.split("://")[1].split("/")[0];
+        return url.split("://").length == 1 ?
+                url.split("/")[0] :
+                url.split("://")[1].split("/")[0];
     }
 
     public String getHash() {
