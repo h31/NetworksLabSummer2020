@@ -22,11 +22,9 @@ public class Crawler {
     private ArrayList<String> initialLinks;
     private ConfigFileReader configFileReader;
     private ArrayDeque<Future<ArrayList<Saver>>> futures;
-    private IndexPageBuilder listPageBuilder;
 
     public Crawler(ConfigFileReader configFileReader) {
         this.configFileReader = configFileReader;
-        this.listPageBuilder = IndexPageBuilder.getInstance();
     }
 
     public void run() throws IOException {
@@ -38,7 +36,6 @@ public class Crawler {
         waitForFutures();
 
         service.shutdown();
-        listPageBuilder.saveToFile("src/main/resources/downloaded/index.html");
     }
 
     private void submitInitialLinks() {

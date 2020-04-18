@@ -22,7 +22,6 @@ import java.io.FileNotFoundException;
 
 public class WebPageSaver extends Saver {
 
-    private IndexPageBuilder listPageBuilder;
     private int currentSearchDepth;
     private Document document;
     private String savingPath;
@@ -35,7 +34,6 @@ public class WebPageSaver extends Saver {
         this.currentUrl = currentUrl;
         this.programConfig = programConfig;
         this.currentSearchDepth = currentSearchDepth;
-        this.listPageBuilder = IndexPageBuilder.getInstance();
         this.fileName = currentUrl.getFileName().equals("") ? DEFAULT_FILE_NAME : currentUrl.getFileName();
         this.savingPath = programConfig.getParameter("savingFolder") + "/" +
                 Urls.removeScheme(Urls.removeFileName(currentUrl.toString()));
@@ -59,7 +57,6 @@ public class WebPageSaver extends Saver {
         downloadWebPage();
         result = createSavers();
         saveWebPage();
-        listPageBuilder.addUrl(Urls.removeScheme(currentUrl.toString()));
 
         return result;
     }
