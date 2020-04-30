@@ -14,7 +14,6 @@ public class SparkServer {
         this.folder = folder;
         runServer();
         notFoundHandling();
-        serverErrorHandling();
     }
 
     private void runServer() {
@@ -45,10 +44,6 @@ public class SparkServer {
                 "<a href=\"http://localhost:" + port + "/index.html\">Go Home</a>\n" +
                 "</body>\n" +
                 "</html>");
-    }
-
-    public void serverErrorHandling() {
-        internalServerError("<html><body><h1>Custom 500 handling</h1></body></html>");
     }
 
 }
