@@ -10,8 +10,8 @@ import java.util.ArrayDeque;
 import java.io.BufferedReader;
 import configFileReader.ConfigFileReader;
 import crawler.url.Url;
-import pageBuilder.IndexPageBuilder;
 
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -19,9 +19,9 @@ import java.util.concurrent.ExecutorService;
 public class Crawler {
 
     private ExecutorService service;
-    private ArrayList<String> initialLinks;
+    private List<String> initialLinks;
     private ConfigFileReader configFileReader;
-    private ArrayDeque<Future<ArrayList<Saver>>> futures;
+    private ArrayDeque<Future<List<Saver>>> futures;
 
     public Crawler(ConfigFileReader configFileReader) {
         this.configFileReader = configFileReader;
@@ -64,9 +64,9 @@ public class Crawler {
     }
 
 
-    private ArrayList<String> readInitialLinksFile(String path) throws IOException{
+    private List<String> readInitialLinksFile(String path) throws IOException{
         String line;
-        ArrayList<String> initialLinks = new ArrayList<>();
+        List<String> initialLinks = new ArrayList<>();
 
         try (BufferedReader bufferedReader = new BufferedReader(new FileReader(new File(path)))){
             while ((line = bufferedReader.readLine()) != null) {

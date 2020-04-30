@@ -8,10 +8,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import configFileReader.ConfigFileReader;
 
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 
 public class FileSaver extends Saver {
@@ -27,7 +27,7 @@ public class FileSaver extends Saver {
     }
 
     @Override
-    public ArrayList<Saver> call() throws Exception {
+    public List<Saver> call() throws Exception {
         if (Files.exists(Paths.get(savingPath))) {
             return null;
         }

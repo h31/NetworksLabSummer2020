@@ -16,9 +16,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import configFileReader.ConfigFileReader;
-import pageBuilder.IndexPageBuilder;
 
 import java.io.FileNotFoundException;
+import java.util.List;
 
 public class WebPageSaver extends Saver {
 
@@ -41,7 +41,7 @@ public class WebPageSaver extends Saver {
 
 
     @Override
-    public ArrayList<Saver> call() throws IOException {
+    public List<Saver> call() throws IOException {
         if (Files.exists(Paths.get(savingPath + fileName)) ||
                 currentSearchDepth > Integer.parseInt(programConfig.getParameter("searchDepth"))) {
             return null;
@@ -51,8 +51,8 @@ public class WebPageSaver extends Saver {
     }
 
 
-    private ArrayList<Saver> handleWebPage() throws IOException {
-        ArrayList<Saver> result;
+    private List<Saver> handleWebPage() throws IOException {
+        List<Saver> result;
 
         downloadWebPage();
         result = createSavers();
@@ -61,8 +61,8 @@ public class WebPageSaver extends Saver {
         return result;
     }
 
-    private ArrayList<Saver> createSavers() {
-        ArrayList<Saver> result;
+    private List<Saver> createSavers() {
+        List<Saver> result;
 
         result = createWebPageSavers(extractRelativeLinks(), currentSearchDepth + 1);
         result.addAll(createCssPageSavers(extractCssLinks()));
@@ -83,8 +83,8 @@ public class WebPageSaver extends Saver {
         printWriter.close();
     }
 
-    private ArrayList<Url> extractRelativeLinks() {
-        ArrayList<Url> result = new ArrayList<>();
+    private List<Url> extractRelativeLinks() {
+        List<Url> result = new ArrayList<>();
         Elements links = document.select("a[href]");
 
         for (Element link: links) {
@@ -97,8 +97,8 @@ public class WebPageSaver extends Saver {
         return result;
     }
 
-    private ArrayList<Url> extractCssLinks() {
-        ArrayList<Url> result = new ArrayList<>();
+    private List<Url> extractCssLinks() {
+        List<Url> result = new ArrayList<>();
         Elements cssLinks = document.head().select("[href*=.css]");
 
         for (Element cssLink: cssLinks) {
@@ -109,8 +109,8 @@ public class WebPageSaver extends Saver {
         return result;
     }
 
-    private ArrayList<Url> extractScriptUrls() {
-        ArrayList<Url> result = new ArrayList<>();
+    private List<Url> extractScriptUrls() {
+        List<Url> result = new ArrayList<>();
         Elements scriptUrls = document.select("script[src]");
 
         for (Element scriptUrl: scriptUrls) {
@@ -121,8 +121,8 @@ public class WebPageSaver extends Saver {
         return result;
     }
 
-    private ArrayList<Url> extractFileUrls() {
-        ArrayList<Url> result = new ArrayList<>();
+    private List<Url> extractFileUrls() {
+        List<Url> result = new ArrayList<>();
         Elements fileUrls = document.select("link[href]");
 
         for (Element fileUrl: fileUrls) {

@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.io.BufferedWriter;
+import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -39,7 +40,7 @@ public class CssPageSaver extends Saver {
     }
 
     @Override
-    public ArrayList<Saver> call() throws Exception {
+    public List<Saver> call() throws Exception {
 
         if (Files.exists(Paths.get(savingPath))) {
             return null;
@@ -58,7 +59,7 @@ public class CssPageSaver extends Saver {
             return null;
         }
 
-        ArrayList<Saver> result = new ArrayList<>();
+        List<Saver> result = new ArrayList<>();
         result.addAll(createFileSavers(extractFileUrls(aCSS)));
         result.addAll(createCssPageSavers(extractCssLinks(aCSS)));
 
@@ -68,8 +69,8 @@ public class CssPageSaver extends Saver {
         return result;
     }
 
-    private ArrayList<Url> extractCssLinks(CascadingStyleSheet aCSS) {
-        ArrayList<Url> result = new ArrayList<>();
+    private List<Url> extractCssLinks(CascadingStyleSheet aCSS) {
+        List<Url> result = new ArrayList<>();
 
         CSSVisitor.visitCSSUrl(aCSS, new DefaultCSSUrlVisitor() {
             @Override
@@ -91,8 +92,8 @@ public class CssPageSaver extends Saver {
         return result;
     }
 
-    private ArrayList<Url> extractFileUrls(CascadingStyleSheet aCSS) {
-        ArrayList<Url> result = new ArrayList<>();
+    private List<Url> extractFileUrls(CascadingStyleSheet aCSS) {
+        List<Url> result = new ArrayList<>();
 
         CSSVisitor.visitCSSUrl(aCSS, new DefaultCSSUrlVisitor() {
             @Override

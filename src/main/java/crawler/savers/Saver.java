@@ -4,21 +4,22 @@ import crawler.url.Url;
 import configFileReader.ConfigFileReader;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 
-public abstract class Saver implements Callable<ArrayList<Saver>> {
+public abstract class Saver implements Callable<List<Saver>> {
 
     ConfigFileReader programConfig;
 
     @Override
-    public ArrayList<Saver> call() throws Exception {
+    public List<Saver> call() throws Exception {
         return null;
     }
 
 
-    ArrayList<Saver> createCssPageSavers(ArrayList<Url> urls) {
-        ArrayList<Saver> result = new ArrayList<>();
+    List<Saver> createCssPageSavers(List<Url> urls) {
+        List<Saver> result = new ArrayList<>();
 
         for (Url url: urls) {
             result.add(new CssPageSaver(url, programConfig));
@@ -28,8 +29,8 @@ public abstract class Saver implements Callable<ArrayList<Saver>> {
     }
 
 
-    ArrayList<Saver> createWebPageSavers(ArrayList<Url> urls, int searchDepth) {
-        ArrayList<Saver> result = new ArrayList<>();
+    List<Saver> createWebPageSavers(List<Url> urls, int searchDepth) {
+        List<Saver> result = new ArrayList<>();
 
         for (Url relativeLink: urls) {
             result.add(new WebPageSaver(searchDepth, relativeLink, programConfig));
@@ -39,8 +40,8 @@ public abstract class Saver implements Callable<ArrayList<Saver>> {
     }
 
 
-    protected ArrayList<Saver> createFileSavers(ArrayList<Url> urls) {
-        ArrayList<Saver> result = new ArrayList<>();
+    protected List<Saver> createFileSavers(List<Url> urls) {
+        List<Saver> result = new ArrayList<>();
 
         for (Url url: urls) {
             result.add(new FileSaver(url, programConfig));
