@@ -17,10 +17,8 @@ trait Downloader[F[_]] {
   * pure [[org.http4s.client.Client]]
   */
 object AsyncDownloader {
-  def make[F[_]](implicit C: ConcurrentEffect[F]): F[Resource[F, Downloader[F]]] =
-    C.delay(
-        AsyncHttpClient.resource[F]().map(new AsyncDownloader[F](_))
-    )
+  def make[F[_]](implicit C: ConcurrentEffect[F]): Resource[F, Downloader[F]] =
+    AsyncHttpClient.resource[F]().map(new AsyncDownloader[F](_))
 }
 
 final class AsyncDownloader[F[_]: Sync] private (asyncHttp: Client[F]) extends Downloader[F] {
@@ -35,12 +33,4 @@ final class AsyncDownloader[F[_]: Sync] private (asyncHttp: Client[F]) extends D
       }
       .map(list => Some(Page(Content(list.mkString("\n")))))
       .use(Sync[F].pure(_))
-}
-
-/**
-  * My implementation of page-downloader of specified URL
-  * It is unsafe, because should of course contain a lot of bugs
-  */
-object NativeDownloader {
-  def unsafe[F[_]]()(implicit C: ConcurrentEffect[F]): F[Resource[F, Downloader[F]]] = ???
 }
