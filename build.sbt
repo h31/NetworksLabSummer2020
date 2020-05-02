@@ -43,6 +43,7 @@ lazy val deps = Seq(
   , "co.fs2"                %% "fs2-core"                 % fs2Version
   , "co.fs2"                %% "fs2-io"                   % fs2Version
   , "io.estatico"           %% "newtype"                  % newTypeVersion
+  , "net.ruippeixotog"      %% "scala-scraper"            % "2.2.0"
 ).map(_ withSources () withJavadoc ())
 
 lazy val assemblySettings = Seq(

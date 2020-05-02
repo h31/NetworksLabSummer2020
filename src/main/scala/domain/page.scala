@@ -1,8 +1,7 @@
 package domain
 
-import io.estatico.newtype.macros.newsubtype
+import io.estatico.newtype.macros.newtype
 
 object page {
-  @newsubtype case class Content(value: String)
-  @newsubtype case class Page(content: Content)
+  @newtype case class HtmlContent(value: String)
 }

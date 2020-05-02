@@ -3,7 +3,7 @@ package http
 import cats.effect.{Blocker, ConcurrentEffect, ContextShift}
 import cats.implicits._
 import org.http4s.implicits._
-import http.routes.{DownloadRoutes, PagesRoutes}
+import http.routes.PagesRoutes
 import org.http4s.server.Router
 import org.http4s.server.middleware.{RequestLogger, ResponseLogger}
 import org.http4s.{HttpApp, HttpRoutes}
@@ -22,8 +22,7 @@ object HttpApi {
       , C: ContextShift[F]
   ) extends HttpApi[F] {
 
-    private val pagesRoutes    = new PagesRoutes[F].routes
-    private val downloadRoutes = new DownloadRoutes[F].routes
+    private val pagesRoutes = new PagesRoutes[F].routes
     private val staticRoutes =
       fileService[F](
           FileService.Config(
@@ -33,7 +32,7 @@ object HttpApi {
       )
 
     private val baseRoutes: HttpRoutes[F] =
-      pagesRoutes <+> downloadRoutes <+> staticRoutes
+      pagesRoutes <+> staticRoutes
 
     private val routes: HttpRoutes[F] = Router(
         version.v1 -> baseRoutes

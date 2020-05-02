@@ -1,14 +1,14 @@
 package algebras
 
 import cats.effect.{ConcurrentEffect, Resource, Sync}
-import domain.page.{Content, Page}
+import domain.page.HtmlContent
 import org.http4s.{Request, Uri}
 import org.http4s.client.Client
 import org.http4s.client.asynchttpclient.AsyncHttpClient
 import fs2._
 
 trait Downloader[F[_]] {
-  def fetchPage(url: Uri): F[Option[Page]]
+  def fetchPage(url: Uri): F[Option[HtmlContent]]
 }
 
 /**
@@ -22,7 +22,7 @@ object AsyncDownloader {
 }
 
 final class AsyncDownloader[F[_]: Sync] private (asyncHttp: Client[F]) extends Downloader[F] {
-  def fetchPage(uri: Uri): F[Option[Page]] =
+  def fetchPage(uri: Uri): F[Option[HtmlContent]] =
     asyncHttp
       .run(Request(uri = uri))
       .evalMap { resp =>
@@ -31,6 +31,6 @@ final class AsyncDownloader[F[_]: Sync] private (asyncHttp: Client[F]) extends D
           .compile
           .toList
       }
-      .map(list => Some(Page(Content(list.mkString("\n")))))
+      .map(list => Some(HtmlContent(list.mkString("\n"))))
       .use(Sync[F].pure(_))
 }
