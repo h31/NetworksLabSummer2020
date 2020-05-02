@@ -1,6 +1,6 @@
 package algebras
 
-import algebras.Extractor.ExtractTypes
+import algebras.Extractor.ExtractType
 import domain.page.HtmlContent
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import org.http4s.Uri
@@ -13,20 +13,26 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.model.Element
 import net.ruippeixotog.scalascraper.scraper.HtmlExtractor
 
-trait Extractor[T <: ExtractTypes] {
+trait Extractor[T <: ExtractType] {
   def extract: HtmlContent => Extractor.Result[T]
 }
 
 object Extractor {
   type Result[T] = Either[ExtractFailure, List[T]]
+  type Query     = String
   final case class ExtractFailure(description: String) extends Throwable
 
-  def apply[T <: ExtractTypes](implicit E: Extractor[T]): Extractor[T] = E
+  def apply[T <: ExtractType](implicit E: Extractor[T]): Extractor[T] = E
 
-  sealed trait ExtractTypes extends Product with Serializable {
+  sealed trait ExtractType extends Product with Serializable {
     val uri: Uri
+    val query: Query
+    val attributeKey: String
   }
-  case class JsUri(uri: Uri) extends ExtractTypes
+  case class JsUri(uri: Uri) extends ExtractType {
+    val attributeKey: String = "src"
+    val query: Query         = s"${JsUri.js}[$attributeKey*=${uri.path}]"
+  }
   object JsUri {
     private val js = "script"
     implicit val jsExtractor: Extractor[JsUri] = new Extractor[JsUri] {
@@ -36,7 +42,10 @@ object Extractor {
         )
     }
   }
-  case class CssUri(uri: Uri) extends ExtractTypes
+  case class CssUri(uri: Uri) extends ExtractType {
+    val attributeKey: String = "href"
+    val query: Query         = s"link[rel=${CssUri.css} $attributeKey*=${uri.path}]"
+  }
   object CssUri {
     private val css = "stylesheet"
     implicit val cssExtractor: Extractor[CssUri] = new Extractor[CssUri] {
@@ -46,7 +55,10 @@ object Extractor {
         )
     }
   }
-  case class LinkUri(uri: Uri) extends ExtractTypes
+  case class LinkUri(uri: Uri) extends ExtractType {
+    val attributeKey: String = "href"
+    val query: Query         = s"${LinkUri.link}[$attributeKey*=${uri.path}]"
+  }
   object LinkUri {
     private val link = "a"
     implicit val cssExtractor: Extractor[LinkUri] = new Extractor[LinkUri] {
@@ -56,7 +68,10 @@ object Extractor {
         )
     }
   }
-  case class ImgUri(uri: Uri) extends ExtractTypes
+  case class ImgUri(uri: Uri) extends ExtractType {
+    val attributeKey: String = "src"
+    val query: Query         = s"${ImgUri.image}[$attributeKey*=${uri.path}]"
+  }
   object ImgUri {
     private val image = "img"
     implicit val cssExtractor: Extractor[ImgUri] = new Extractor[ImgUri] {
@@ -68,7 +83,7 @@ object Extractor {
   }
 
   type HtmlE = HtmlExtractor[Element, Iterable[String]]
-  private def extractCommon[T <: ExtractTypes](
+  private def extractCommon[T <: ExtractType](
         ext: HtmlE
   )(ifFailure: String)(apply: Uri => T): HtmlContent => Extractor.Result[T] =
     (html: HtmlContent) =>
@@ -82,7 +97,7 @@ object Extractor {
 
   object syntax {
     implicit class PageSyntax(page: HtmlContent) {
-      def extract[T <: ExtractTypes](implicit E: Extractor[T]): Extractor.Result[T] = Extractor[T].extract(page)
+      def extract[T <: ExtractType](implicit E: Extractor[T]): Extractor.Result[T] = Extractor[T].extract(page)
     }
   }
 }

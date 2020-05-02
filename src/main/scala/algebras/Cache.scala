@@ -1,6 +1,6 @@
 package algebras
 
-import algebras.Extractor.{CssUri, ImgUri, JsUri}
+import algebras.Extractor.ExtractType
 import cats.Functor
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
@@ -21,17 +21,16 @@ private class CrawlerCache[F[_]: Functor, K, V] private (cache: Ref[F, m.Map[K, 
 }
 
 object CrawlerCache {
-  sealed trait HtmlResource extends Product with Serializable { type T }
-  case object JsResource    extends HtmlResource              { type T = JsUri }
-  case object CssResource   extends HtmlResource              { type T = CssUri }
-  case object ImgResource   extends HtmlResource              { type T = ImgUri }
-
   case class UriNode(uri: Uri)
-
   type Key         = UriNode
-  type Value       = Map[HtmlResource, HtmlResource#T]
+  type Value       = Set[ExtractType]
   type Index[F[_]] = Cache[F, Key, Value]
 
   def acquire[F[_]: Sync: Functor]: F[Index[F]] =
     Functor[F].map(Ref.of(m.Map.empty[Key, Value]))(new CrawlerCache[F, Key, Value](_))
+
+  def acquireOne[F[_]: Sync: Functor](start: UriNode): F[Index[F]] =
+    Functor[F].map(
+        Ref.of(m.Map(start -> Set.empty[ExtractType]))
+    )(new CrawlerCache[F, Key, Value](_))
 }

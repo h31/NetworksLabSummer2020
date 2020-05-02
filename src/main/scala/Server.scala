@@ -1,3 +1,4 @@
+import algebras.CrawlerCache.UriNode
 import algebras.{AsyncDownloader, CrawlerCache}
 import cats.effect.{Concurrent, ConcurrentEffect, Timer}
 import config.Config
@@ -17,7 +18,7 @@ object Server {
         (api: HttpApi[F]) =>
           for {
             downloader <- Stream.resource(AsyncDownloader.make[F])
-            cache      <- Stream.eval(CrawlerCache.acquire[F])
+            cache      <- Stream.eval(CrawlerCache.acquireOne[F](???))
             server = cfg.serverConfig
             _ <- BlazeServerBuilder[F]
                   .bindHttp(server.port, server.host)
