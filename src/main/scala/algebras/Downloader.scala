@@ -31,6 +31,6 @@ final class AsyncDownloader[F[_]: Sync] private (asyncHttp: Client[F]) extends D
           .compile
           .toList
       }
-      .map(list => Some(HtmlContent(list.mkString("\n"))))
+      .map(list => Some(HtmlContent(list.mkString)))
       .use(Sync[F].pure(_))
 }

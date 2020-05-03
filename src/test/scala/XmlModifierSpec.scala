@@ -33,13 +33,13 @@ class XmlModifierSpec extends FlatSpec with Matchers {
 
     val modified =
       XmlTraversable.modify[IO](dom)(
-          Map(
-            LinkUri(Uri.unsafeFromString("https://habr.com/sandbox/start/")) -> new File("hoho")
+          List(
+            LinkUri(Uri.unsafeFromString("https://habr.com/sandbox/start/"))
           , ImgUri(
               Uri.unsafeFromString(
                 "https://habrastorage.org/getpro/tmtm/pictures/191/7b2/ec0/1917b2ec03aa04d759e41c950732e07e.png"
             )
-          ) -> new File("haha")
+          )
         )
       )
 

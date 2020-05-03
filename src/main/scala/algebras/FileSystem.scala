@@ -6,13 +6,15 @@ import java.nio.file.Path
 import cats.effect.{Blocker, ContextShift, Sync}
 import fs2._
 import fs2.io._
+import cats.syntax.traverse._
+import cats.instances.list._
 import cats.syntax.functor._
 import cats.syntax.flatMap._
 import domain.page.HtmlContent
 
 trait FileSystem[F[_]] {
   def writeFile(path: File, content: HtmlContent): Stream[F, Unit]
-  def createDirectory: F[Path]
+  def createDirectories: F[Unit]
 }
 
 final class CrawlerFileSystem[F[_]: Sync] private (
@@ -20,24 +22,18 @@ final class CrawlerFileSystem[F[_]: Sync] private (
     , blocker: Blocker
 ) extends FileSystem[F] {
 
-  /**
-    * deterministic function, that will create a directory if it does not exist
-    */
-  def createDirectory: F[Path] = {
+  def createDirectories: F[Unit] = {
     import CrawlerFileSystem.defaultDir
 
-    exists(defaultDir).flatMap {
-      _.fold(
-          file.createDirectory[F](blocker, defaultDir.toPath)
-      )(_ => Sync[F].pure(defaultDir.toPath))
-    }
-  }
+    val dirs = List("css", "js", "img")
 
-  private def exists(path: File): F[Option[Unit]] =
-    file.exists[F](blocker, path.toPath).map {
-      case true  => Some(())
-      case false => None
-    }
+    def createDir(f: File): F[Path] =
+      file.createDirectory[F](blocker, f.toPath)
+
+    file.deleteIfExists(blocker, defaultDir.toPath) >> createDir(defaultDir) >> dirs
+      .traverse(dir => createDir(new File(s"$defaultDir/$dir")))
+      .void
+  }
 
   def writeFile(path: File, content: HtmlContent): Stream[F, Unit] =
     Stream
@@ -53,7 +49,7 @@ object CrawlerFileSystem {
   def withDefaultPath: File => File = defaultDir / _.getName
 
   def apply[F[_]: Sync](implicit C: ContextShift[F], B: Blocker): F[FileSystem[F]] =
-    Sync[F].pure[FileSystem[F]](new CrawlerFileSystem[F]).flatTap(_.createDirectory)
+    Sync[F].pure[FileSystem[F]](new CrawlerFileSystem[F]).flatTap(_.createDirectories)
 }
 
 object FileImplicitUtils {

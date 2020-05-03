@@ -1,6 +1,6 @@
 package algebras
 
-import algebras.Extractor.ExtractType
+import algebras.Extractor.HtmlResource
 import cats.Functor
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
@@ -23,7 +23,7 @@ private class CrawlerCache[F[_]: Functor, K, V] private (cache: Ref[F, m.Map[K, 
 object CrawlerCache {
   case class UriNode(uri: Uri)
   type Key         = UriNode
-  type Value       = Set[ExtractType]
+  type Value       = Set[HtmlResource]
   type Index[F[_]] = Cache[F, Key, Value]
 
   def acquire[F[_]: Sync: Functor]: F[Index[F]] =
@@ -31,6 +31,6 @@ object CrawlerCache {
 
   def acquireOne[F[_]: Sync: Functor](start: UriNode): F[Index[F]] =
     Functor[F].map(
-        Ref.of(m.Map(start -> Set.empty[ExtractType]))
+        Ref.of(m.Map(start -> Set.empty[HtmlResource]))
     )(new CrawlerCache[F, Key, Value](_))
 }

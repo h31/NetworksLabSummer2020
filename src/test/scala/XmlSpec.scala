@@ -3,7 +3,7 @@ import algebras.Extractor.{CssUri, ImgUri, JsUri, LinkUri}
 import domain.page.HtmlContent
 import org.scalatest.{FlatSpec, Matchers}
 import Extractor.syntax._
-import cats.syntax.either._
+import cats.effect.IO
 import org.http4s.Uri
 
 class XmlSpec extends FlatSpec with Matchers {
@@ -16,7 +16,8 @@ class XmlSpec extends FlatSpec with Matchers {
       )
 
     simpleCssLink
-      .extract[CssUri] shouldEqual List(CssUri(Uri.unsafeFromString("https://microsoft.com"))).asRight
+      .extract[IO, CssUri]
+      .unsafeRunSync() shouldEqual List(CssUri(Uri.unsafeFromString("https://microsoft.com")))
   }
 
   "Js extractor" should "extract js links from html DOM" in {
@@ -26,9 +27,9 @@ class XmlSpec extends FlatSpec with Matchers {
         </script>.toString
       )
 
-    simpleJsLink.extract[JsUri] shouldEqual List(
+    simpleJsLink.extract[IO, JsUri].unsafeRunSync() shouldEqual List(
         JsUri(Uri.unsafeFromString("https://dr.habracdn.net/habrcom/javascripts/1588261330/libs/jquery-1.8.3.min.js"))
-    ).asRight
+    )
   }
 
   "Link extractor" should "extract links to other pages from html DOM" in {
@@ -45,13 +46,13 @@ class XmlSpec extends FlatSpec with Matchers {
            rel=" noopener">The Standoff: шоу</a>.toString
       )
 
-    link.extract[LinkUri] shouldEqual List(
+    link.extract[IO, LinkUri].unsafeRunSync() shouldEqual List(
         LinkUri(Uri.unsafeFromString("https://career.habr.com?utm_source=habrutm_medium=habr_top_panel"))
-    ).asRight
+    )
 
-    otherLink.extract[LinkUri] shouldEqual List(
+    otherLink.extract[IO, LinkUri].unsafeRunSync() shouldEqual List(
         LinkUri(Uri.unsafeFromString("https://u.tmtm.ru/pt_top"))
-    ).asRight
+    )
   }
 
   "Img extractor" should "extract image links from html DOM" in {
@@ -59,9 +60,9 @@ class XmlSpec extends FlatSpec with Matchers {
         <img src="https://andr83.io/wp-content/uploads/2018/04/magic_hat.png" alt="image"/>.toString
     )
 
-    link.extract[ImgUri] shouldEqual List(
+    link.extract[IO, ImgUri].unsafeRunSync() shouldEqual List(
         ImgUri(Uri.unsafeFromString("https://andr83.io/wp-content/uploads/2018/04/magic_hat.png"))
-    ).asRight
+    )
   }
 
   "Test for all type" should "extract right" in {
@@ -92,10 +93,10 @@ class XmlSpec extends FlatSpec with Matchers {
       ).map(Uri.unsafeFromString)
 
     val result = (for {
-      imgs <- dom.extract[ImgUri]
-      as   <- dom.extract[LinkUri]
-    } yield imgs ++ as).getOrElse(List.empty).map(_.uri)
+      imgs <- dom.extract[IO, ImgUri]
+      as   <- dom.extract[IO, LinkUri]
+    } yield imgs ++ as).map(_.map(_.uri)).unsafeRunSync()
 
-    result shouldEqual expected
+    result shouldBe expected
   }
 }
