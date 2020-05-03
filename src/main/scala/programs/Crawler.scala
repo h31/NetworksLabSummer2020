@@ -85,11 +85,7 @@ object Crawler {
                   .emits(resources)
                   .covary[F]
                   .collect {
-                    case r: HtmlResource
-                        if r.isInstanceOf[JsUri] ||
-                          r.isInstanceOf[CssUri] ||
-                          r.isInstanceOf[ImgUri] =>
-                      r
+                    case r @ (_: JsUri | _: CssUri | _: ImgUri) => r
                   }
                   .map(r => fetch(r)(fs.writeFile(r.toPath, _)))
                   .parJoinUnbounded
