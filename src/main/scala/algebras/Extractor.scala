@@ -36,6 +36,7 @@ object Extractor {
 
     protected def extractLast: String = uri.path.split("/").lastOption.getOrElse("")
 
+    def toIndex: File = new File(s"./${CrawlerFileSystem.defaultDir}/index.html")
     def toPathWithoutDir: File
     def toPath: File
   }

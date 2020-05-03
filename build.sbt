@@ -16,14 +16,16 @@ lazy val baseSettings = Seq(
   , resourceDirectory in Compile := baseDirectory.value / "resources"
 )
 
-lazy val http4sVersion     = "0.20.11"
-lazy val circeVersion      = "0.11.1"
-lazy val scalaTestVersion  = "3.0.4"
-lazy val logbackVersion    = "1.2.3"
-lazy val catsVersion       = "2.0.0"
-lazy val fs2Version        = "2.1.0"
-lazy val pureConfigVersion = "0.12.2"
-lazy val newTypeVersion    = "0.4.3"
+lazy val http4sVersion       = "0.20.11"
+lazy val circeVersion        = "0.11.1"
+lazy val scalaTestVersion    = "3.0.4"
+lazy val logbackVersion      = "1.2.3"
+lazy val catsVersion         = "2.0.0"
+lazy val fs2Version          = "2.1.0"
+lazy val pureConfigVersion   = "0.12.2"
+lazy val newTypeVersion      = "0.4.3"
+lazy val scalaWrapperVersion = "2.2.0"
+lazy val scalaTagsVersion    = "0.8.2"
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 
@@ -43,7 +45,8 @@ lazy val deps = Seq(
   , "co.fs2"                %% "fs2-core"                 % fs2Version
   , "co.fs2"                %% "fs2-io"                   % fs2Version
   , "io.estatico"           %% "newtype"                  % newTypeVersion
-  , "net.ruippeixotog"      %% "scala-scraper"            % "2.2.0"
+  , "net.ruippeixotog"      %% "scala-scraper"            % scalaWrapperVersion
+  , "com.lihaoyi"           %% "scalatags"                % scalaTagsVersion
 ).map(_ withSources () withJavadoc ())
 
 lazy val assemblySettings = Seq(

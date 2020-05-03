@@ -2,10 +2,9 @@ package programs
 
 import algebras.{Downloader, FileSystem}
 import algebras.Extractor.{CssUri, HtmlResource, ImgUri, JsUri, LinkUri}
-import cats.syntax.apply._
 import cats.syntax.functor._
 import cats.syntax.flatMap._
-import cats.effect.{Concurrent, Sync, Timer}
+import cats.effect.{Concurrent, Timer}
 import cats.effect.concurrent.Ref
 import domain.page.HtmlContent
 import fs2._
@@ -24,38 +23,35 @@ object Crawler {
         startUri: Start
   )(implicit L: Logger): Crawler[F] =
     new Crawler[F] {
-      type Traversed[G[_]] = Ref[G, List[LinkUri]] // traversed and modified resources
-      type Next[G[_]]      = Ref[G, List[LinkUri]] // resources, we are going to fetch
+      type Index       = List[LinkUri]
+      type Fetch[G[_]] = Ref[G, Index] // resources we are going to fetch
 
       def crawl: Stream[F, Unit] =
         Stream
-          .eval {
-            (Ref.of[F, List[LinkUri]](List.empty) -> Ref.of[F, List[LinkUri]](List.empty)).tupled
-          }
-          .flatMap {
-            case (traversed, next) =>
-              def accumulate: Stream[F, Unit] = {
-                def pipeline =
-                  Stream
-                    .eval(next.get)
-                    .map(_.head)
-                    .flatMap { link =>
-                      start(traversed, next, link)
-                        .onFinalize(
-                            next.update(_.filterNot(_ == link))
-                        )
-                    } ++ goIfNonEmpty
+          .eval(Ref.of[F, Index](List.empty))
+          .flatMap { index =>
+            def accumulate: Stream[F, Unit] = {
+              def pipeline =
+                Stream
+                  .eval(index.get)
+                  .map(_.head)
+                  .flatMap { link =>
+                    start(index, link)
+                      .onFinalize(
+                          index.update(_.filterNot(_ == link))
+                      )
+                  } ++ goIfNonEmpty
 
-                def goIfNonEmpty: Stream[F, Unit] =
-                  Stream.eval(next.get).flatMap { list =>
-                    if (list.nonEmpty) pipeline
-                    else Stream.empty
-                  }
+              def goIfNonEmpty: Stream[F, Unit] =
+                Stream.eval(index.get).flatMap { list =>
+                  if (list.nonEmpty) pipeline
+                  else Stream.empty
+                }
 
-                goIfNonEmpty
-              }
+              goIfNonEmpty
+            }
 
-              start(traversed, next, LinkUri(startUri.uri)) ++ accumulate
+            start(index, LinkUri(startUri.uri)) ++ accumulate
           }
 
       def fetch(link: HtmlResource)(continue: HtmlContent => Stream[F, Unit]): Stream[F, Unit] =
@@ -68,23 +64,23 @@ object Crawler {
             )(continue)
           )
 
-      def start(traversed: Traversed[F], next: Next[F], currentLink: HtmlResource): Stream[F, Unit] =
+      def start(index: Fetch[F], currentLink: HtmlResource): Stream[F, Unit] =
         fetch(currentLink) { content =>
           val pipeline =
             for {
-              _ <- currentLink match {
-                    case link: LinkUri => traversed.update(link :: _)
-                    case _             => Sync[F].pure(())
-                  }
               resources <- extract(content)
               nextLinks = resources.collect { case link: LinkUri => link }
-              _              <- next.update(l => (l ++ nextLinks).distinct) // so that there are no endless recursive situations
+              _              <- index.update(l => (l ++ nextLinks).distinct) // so that there are no endless recursive situations
               updatedContent <- XmlTraversable.modify[F](content)(resources)
             } yield updatedContent -> resources
 
           Stream.eval(pipeline).flatMap {
             case (content, resources) =>
-              fs.writeFile(currentLink.toPath, content) ++
+              val name =
+                if (currentLink.uri == startUri.uri) currentLink.toIndex
+                else currentLink.toPath
+
+              fs.writeFile(name, content) ++
                 Stream
                   .emits(resources)
                   .covary[F]

@@ -1,10 +1,8 @@
 package http
 
+import algebras.CrawlerFileSystem
 import cats.effect.{Blocker, ConcurrentEffect, ContextShift}
-import cats.implicits._
 import org.http4s.implicits._
-import http.routes.PagesRoutes
-import org.http4s.server.Router
 import org.http4s.server.middleware.{RequestLogger, ResponseLogger}
 import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.server.staticcontent._
@@ -13,7 +11,11 @@ object HttpApi {
   sealed trait HttpApi[F[_]] { val httpApp: HttpApp[F] }
 
   case object V1 {
-    def api[F[_]: ConcurrentEffect](implicit B: Blocker, C: ContextShift[F]): HttpApi[F] = new V1[F]
+    def api[F[_]: ConcurrentEffect](
+          implicit B: Blocker
+        , C: ContextShift[F]
+    ): HttpApi[F] =
+      new V1[F]
   }
 
   final class V1[F[_]: ConcurrentEffect] private (
@@ -22,21 +24,15 @@ object HttpApi {
       , C: ContextShift[F]
   ) extends HttpApi[F] {
 
-    private val pagesRoutes = new PagesRoutes[F].routes
     private val staticRoutes =
       fileService[F](
           FileService.Config(
-            systemPath = "./src/main/resources"
+            systemPath = s"./${CrawlerFileSystem.defaultDir}"
           , executionContext = B.blockingContext
         )
       )
 
-    private val baseRoutes: HttpRoutes[F] =
-      pagesRoutes <+> staticRoutes
-
-    private val routes: HttpRoutes[F] = Router(
-        version.v1 -> baseRoutes
-    )
+    private val routes: HttpRoutes[F] = staticRoutes
 
     private val loggers: HttpApp[F] => HttpApp[F] = {
       { http: HttpApp[F] =>

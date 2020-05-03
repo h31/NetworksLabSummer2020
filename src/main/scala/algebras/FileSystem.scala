@@ -15,6 +15,7 @@ import domain.page.HtmlContent
 trait FileSystem[F[_]] {
   def writeFile(path: File, content: HtmlContent): Stream[F, Unit]
   def createDirectories: F[Unit]
+  def scan(fn: File => Boolean): F[List[File]]
 }
 
 final class CrawlerFileSystem[F[_]: Sync] private (
@@ -40,6 +41,14 @@ final class CrawlerFileSystem[F[_]: Sync] private (
       .emit(content.value)
       .through(text.utf8Encode[F])
       .through(io.file.writeAll(path.toPath, blocker))
+
+  def scan(fn: File => Boolean): F[List[File]] =
+    Sync[F].delay(
+        CrawlerFileSystem.defaultDir
+        .listFiles()
+        .filter(fn)
+        .toList
+    )
 }
 
 object CrawlerFileSystem {
