@@ -14,8 +14,6 @@ import org.slf4j.Logger
 import algebras.Extractor.syntax._
 import utils.XmlTraversable
 
-import scala.concurrent.duration._
-
 trait Crawler[F[_]] {
   def crawl: Stream[F, Unit]
 }
@@ -26,22 +24,38 @@ object Crawler {
         startUri: Start
   )(implicit L: Logger): Crawler[F] =
     new Crawler[F] {
-      type Traversed[G[_]] = Ref[G, List[LinkUri]]         // traversed and modified resources
-      type Next[G[_]]      = Ref[G, Option[List[LinkUri]]] // nodes, we are going to fetch
+      type Traversed[G[_]] = Ref[G, List[LinkUri]] // traversed and modified resources
+      type Next[G[_]]      = Ref[G, List[LinkUri]] // resources, we are going to fetch
 
       def crawl: Stream[F, Unit] =
         Stream
           .eval {
-            (Ref.of[F, List[LinkUri]](List.empty)
-              -> Ref.of[F, Option[List[LinkUri]]](Some(List.empty))).tupled
+            (Ref.of[F, List[LinkUri]](List.empty) -> Ref.of[F, List[LinkUri]](List.empty)).tupled
           }
           .flatMap {
             case (traversed, next) =>
-              /**
-                * We start with 'start URL' (index.html) to collect enough info
-                * for fetching resources and other pages in parallel
-                */
-              startPipeline(traversed, next, LinkUri(startUri.uri))
+              def accumulate: Stream[F, Unit] = {
+                def pipeline =
+                  Stream
+                    .eval(next.get)
+                    .map(_.head)
+                    .flatMap { link =>
+                      start(traversed, next, link)
+                        .onFinalize(
+                            next.update(_.filterNot(_ == link))
+                        )
+                    } ++ goIfNonEmpty
+
+                def goIfNonEmpty: Stream[F, Unit] =
+                  Stream.eval(next.get).flatMap { list =>
+                    if (list.nonEmpty) pipeline
+                    else Stream.empty
+                  }
+
+                goIfNonEmpty
+              }
+
+              start(traversed, next, LinkUri(startUri.uri)) ++ accumulate
           }
 
       def fetch(link: HtmlResource)(continue: HtmlContent => Stream[F, Unit]): Stream[F, Unit] =
@@ -54,7 +68,7 @@ object Crawler {
             )(continue)
           )
 
-      def startPipeline(traversed: Traversed[F], next: Next[F], currentLink: HtmlResource): Stream[F, Unit] =
+      def start(traversed: Traversed[F], next: Next[F], currentLink: HtmlResource): Stream[F, Unit] =
         fetch(currentLink) { content =>
           val pipeline =
             for {
@@ -64,7 +78,7 @@ object Crawler {
                   }
               resources <- extract(content)
               nextLinks = resources.collect { case link: LinkUri => link }
-              _              <- next.update(maybe => Some(maybe.getOrElse(List.empty) ++ nextLinks))
+              _              <- next.update(l => (l ++ nextLinks).distinct) // so that there are no endless recursive situations
               updatedContent <- XmlTraversable.modify[F](content)(resources)
             } yield updatedContent -> resources
 
@@ -75,7 +89,10 @@ object Crawler {
                   .emits(resources)
                   .covary[F]
                   .collect {
-                    case r: HtmlResource if r.isInstanceOf[JsUri] || r.isInstanceOf[CssUri] || r.isInstanceOf[ImgUri] =>
+                    case r: HtmlResource
+                        if r.isInstanceOf[JsUri] ||
+                          r.isInstanceOf[CssUri] ||
+                          r.isInstanceOf[ImgUri] =>
                       r
                   }
                   .map(r => fetch(r)(fs.writeFile(r.toPath, _)))
@@ -91,19 +108,6 @@ object Crawler {
             links   <- html.extract[F, LinkUri]
             imgs    <- html.extract[F, ImgUri]
           } yield (styles ++ scripts ++ links ++ imgs).distinct
-            .collect {
-              case resource: HtmlResource if resource.uri.host.isDefined => resource
-            }
-
-      val concurrentCheck: Next[F] => Stream[F, Unit] =
-        next =>
-          Stream.awakeEvery[F](500.millis) >>
-            Stream
-              .eval(next.get)
-              .unNone
-              .evalMap {
-                case Nil          => next.update(_ => None)
-                case _ @ ::(_, _) => Sync[F].pure(())
-              }
+            .collect { case res: HtmlResource if res.uri.host.isDefined && res.uri.scheme.isDefined => res }
     }
 }

@@ -34,14 +34,16 @@ object Extractor {
     val query: Query
     val attributeKey: String
 
-    protected def extractLast = uri.path.split("/").last
+    protected def extractLast: String = uri.path.split("/").lastOption.getOrElse("")
 
+    def toPathWithoutDir: File
     def toPath: File
   }
   case class JsUri(uri: Uri) extends HtmlResource {
-    val attributeKey: String = "src"
-    val query: Query         = s"${JsUri.js}[$attributeKey*=${uri.toString}]"
-    def toPath: File         = new File(s"$defaultDir/js/$extractLast")
+    val attributeKey: String   = "src"
+    val query: Query           = s"${JsUri.js}[$attributeKey*=${uri.toString}]"
+    def toPath: File           = new File(s"$defaultDir/js/$extractLast")
+    def toPathWithoutDir: File = new File(s"./$extractLast")
   }
   object JsUri {
     private val js = "script"
@@ -53,9 +55,10 @@ object Extractor {
     }
   }
   case class CssUri(uri: Uri) extends HtmlResource {
-    val attributeKey: String = "href"
-    val query: Query         = s"link[rel=${CssUri.css} $attributeKey*=${uri.toString}]"
-    def toPath: File         = new File(s"$defaultDir/css/$extractLast")
+    val attributeKey: String   = "href"
+    val query: Query           = s"link[rel=${CssUri.css} $attributeKey*=${uri.toString}]"
+    def toPath: File           = new File(s"$defaultDir/css/$extractLast")
+    def toPathWithoutDir: File = new File(s"./$extractLast")
   }
   object CssUri {
     private val css = "stylesheet"
@@ -67,9 +70,10 @@ object Extractor {
     }
   }
   case class LinkUri(uri: Uri) extends HtmlResource {
-    val attributeKey: String = "href"
-    val query: Query         = s"${LinkUri.link}[$attributeKey*=${uri.toString}]"
-    def toPath: File         = new File(s"$defaultDir/${uri.host.get}.html")
+    val attributeKey: String   = "href"
+    val query: Query           = s"${LinkUri.link}[$attributeKey*=${uri.toString}]"
+    def toPath: File           = new File(s"$defaultDir/${uri.host.get}.html")
+    def toPathWithoutDir: File = new File(s"./${uri.host.get}.html")
   }
   object LinkUri {
     private val link = "a"
@@ -81,9 +85,10 @@ object Extractor {
     }
   }
   case class ImgUri(uri: Uri) extends HtmlResource {
-    val attributeKey: String = "src"
-    val query: Query         = s"${ImgUri.image}[$attributeKey*=${uri.toString}]"
-    def toPath: File         = new File(s"$defaultDir/img/$extractLast")
+    val attributeKey: String   = "src"
+    val query: Query           = s"${ImgUri.image}[$attributeKey*=${uri.toString}]"
+    def toPath: File           = new File(s"$defaultDir/img/$extractLast")
+    def toPathWithoutDir: File = new File(s"./$extractLast")
   }
   object ImgUri {
     private val image = "img"

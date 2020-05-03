@@ -11,11 +11,7 @@ object XmlTraversable {
       .delay { // local mutability
         val doc = Jsoup.parse(html.value)
         modify.foreach(
-            res => {
-              println(res)
-              println(res.query)
-              doc.select(res.query).attr(res.attributeKey, s"${res.toPath}")
-            }
+            res => doc.select(res.query).attr(res.attributeKey, s"${res.toPathWithoutDir}")
         )
         HtmlContent(doc.html())
       }

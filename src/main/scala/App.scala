@@ -41,7 +41,7 @@ object Test extends IOApp {
       _ <- Stream.eval(
               client
               .fetchPage(
-                  Uri.fromString("https://github.com/pureconfig/pureconfig").getOrElse(Uri.unsafeFromString(""))
+                  Uri.fromString("https://www.youtube.com").getOrElse(Uri.unsafeFromString(""))
               )
               .map(println(_))
           )

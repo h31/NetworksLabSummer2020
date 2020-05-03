@@ -31,11 +31,6 @@ object Server {
                 )(
                     Start(Uri.unsafeFromString(cfg.fetchUrl.url))
                 ).crawl
-            server = cfg.serverConfig
-            _ <- BlazeServerBuilder[F]
-                  .bindHttp(server.port, server.host)
-                  .withHttpApp(api.httpApp)
-                  .serve
           } yield ()
     }
 
