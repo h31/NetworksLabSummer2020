@@ -10,7 +10,6 @@ import fs2._
 import org.http4s.Uri
 import org.slf4j.Logger
 import algebras.Extractor.syntax._
-import cats.effect.concurrent.Ref
 import fs2.concurrent.Queue
 import utils.XmlTraversable
 
@@ -24,35 +23,19 @@ object Crawler {
         startUri: Start
   )(implicit L: Logger): Crawler[F] =
     new Crawler[F] {
-      type Index       = List[LinkUri]
-      type Fetch[G[_]] = Ref[G, Index] // resources we are going to fetch
+      type Index = Queue[F, LinkUri]
 
       def crawl: Stream[F, Unit] =
         Stream
-          .eval(Ref.of[F, Index](List.empty))
+          .eval(Queue.unbounded[F, LinkUri])
           .flatMap { index =>
-            def accumulate: Stream[F, Unit] = {
-              def pipeline =
-                Stream
-                  .eval(index.get)
-                  .map(_.head)
-                  .flatMap { link =>
-                    start(index, link)
-                      .onFinalize(
-                          index.update(_.filterNot(_ == link))
-                      )
-                  } ++ goIfNonEmpty
-
-              def goIfNonEmpty: Stream[F, Unit] =
-                Stream.eval(index.get).flatMap { list =>
-                  if (list.nonEmpty) pipeline
-                  else Stream.empty
-                }
-
-              goIfNonEmpty
-            }
-
-            start(index, LinkUri(startUri.uri)) ++ accumulate
+            Stream.eval(
+                index
+                .enqueue1(LinkUri(startUri.uri))
+            ) ++
+              index.dequeue
+                .map(start(index, _))
+                .parJoinUnbounded
           }
 
       def fetch(link: HtmlResource)(continue: HtmlContent => Stream[F, Unit]): Stream[F, Unit] =
@@ -60,31 +43,28 @@ object Crawler {
           .eval(fetcher.fetchPage(link.uri))
           .flatMap(_.fold(Stream.emit(()).covary[F])(continue))
 
-      def start(index: Fetch[F], currentLink: HtmlResource): Stream[F, Unit] =
+      def start(index: Index, currentLink: HtmlResource): Stream[F, Unit] =
         fetch(currentLink) { content =>
           val pipeline =
             for {
-              resources <- extract(content)
-              nextLinks = resources.collect { case link: LinkUri => link }
-              _              <- index.update(l => (l ++ nextLinks).distinct) // so that there are no endless recursive situations
-              updatedContent <- XmlTraversable.modify[F](content)(resources)
+              resources <- Stream.eval(extract(content))
+              _ <- Stream
+                    .emits(resources)
+                    .collect { case l: LinkUri => l }
+                    .through(index.enqueue)
+              updatedContent <- Stream.eval(XmlTraversable.modify[F](content)(resources))
             } yield updatedContent -> resources
 
-          Stream.eval(pipeline).flatMap {
+          pipeline.flatMap {
             case (content, resources) =>
-              val name =
-                if (currentLink.uri == startUri.uri) currentLink.toIndex
-                else currentLink.toPath
-
-              fs.writeFile(name, content) ++
+              fs.writeFile(currentLink.toPath, content) ++
                 Stream
                   .emits(resources)
                   .covary[F]
                   .collect {
                     case r @ (_: JsUri | _: CssUri | _: ImgUri) => r
                   }
-                  .map(r => fetch(r)(fs.writeFile(r.toPath, _)))
-                  .parJoinUnbounded
+                  .flatMap(r => fetch(r)(fs.writeFile(r.toPath, _)))
           }
         }
 

@@ -1,3 +1,5 @@
+import java.io.File
+
 import algebras.{AsyncDownloader, CrawlerFileSystem}
 import cats.effect.{Blocker, Concurrent, ConcurrentEffect, ContextShift, Timer}
 import config.Config
@@ -10,6 +12,7 @@ import programs.Crawler.Start
 import cats.syntax.either._
 import cats.syntax.functor._
 import http.HttpApi
+import utils.HtmlConstructor
 
 import scala.concurrent.duration._
 
@@ -41,14 +44,24 @@ object Server {
                     Timer[F].sleep(cfg.fetchTime.time.seconds).as(().asRight[Throwable])
                 ) // use crawler only once during cfg.time
 
+            val renderStream =
+              Stream
+                .eval(fs.scan(_.toPath.toString.contains(".html")))
+                .map(HtmlConstructor.render)
+                .flatMap(
+                    fs.writeFile(
+                      new File(s"./${CrawlerFileSystem.defaultDir}/index.html")
+                    , _
+                  )
+                )
+
             crawlerStream.handleErrorWith(
                 err => Stream.eval(ConcurrentEffect[F].delay(L.info(err.getMessage)))
-            ) ++
-              BlazeServerBuilder[F] // use crawler, after that start http server
-                .bindHttp(server.port, server.host)
-                .withHttpApp(api)
-                .serve
-                .void
+            ) ++ renderStream ++ BlazeServerBuilder[F] // use crawler, after that start http server
+              .bindHttp(server.port, server.host)
+              .withHttpApp(api)
+              .serve
+              .void
         }
       }
     }
