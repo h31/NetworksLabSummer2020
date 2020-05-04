@@ -41,6 +41,7 @@ final class CrawlerFileSystem[F[_]: Sync] private (
       .emit(content.value)
       .through(text.utf8Encode[F])
       .through(io.file.writeAll(path.toPath, blocker))
+      .handleErrorWith(_ => Stream.empty)
 
   def scan(fn: File => Boolean): F[List[File]] =
     Sync[F].delay(

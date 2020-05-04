@@ -5,12 +5,13 @@ import algebras.Extractor.{CssUri, HtmlResource, ImgUri, JsUri, LinkUri}
 import cats.syntax.functor._
 import cats.syntax.flatMap._
 import cats.effect.{Concurrent, Timer}
-import cats.effect.concurrent.Ref
 import domain.page.HtmlContent
 import fs2._
 import org.http4s.Uri
 import org.slf4j.Logger
 import algebras.Extractor.syntax._
+import cats.effect.concurrent.Ref
+import fs2.concurrent.Queue
 import utils.XmlTraversable
 
 trait Crawler[F[_]] {
@@ -57,12 +58,7 @@ object Crawler {
       def fetch(link: HtmlResource)(continue: HtmlContent => Stream[F, Unit]): Stream[F, Unit] =
         Stream
           .eval(fetcher.fetchPage(link.uri))
-          .flatMap(
-              _.fold(
-                Stream
-                .raiseError[F](new RuntimeException("Can't fetch page")): Stream[F, Unit]
-            )(continue)
-          )
+          .flatMap(_.fold(Stream.emit(()).covary[F])(continue))
 
       def start(index: Fetch[F], currentLink: HtmlResource): Stream[F, Unit] =
         fetch(currentLink) { content =>
