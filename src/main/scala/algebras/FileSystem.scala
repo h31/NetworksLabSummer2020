@@ -14,6 +14,7 @@ import domain.page.HtmlContent
 
 trait FileSystem[F[_]] {
   def writeFile(path: File, content: HtmlContent): Stream[F, Unit]
+  def readFile(path: File): F[HtmlContent]
   def createDirectories: F[Unit]
   def scan(fn: File => Boolean): F[List[File]]
 }
@@ -50,11 +51,22 @@ final class CrawlerFileSystem[F[_]: Sync] private (
         .filter(fn)
         .toList
     )
+
+  def readFile(path: File): F[HtmlContent] =
+    file
+      .readAll[F](path.toPath, blocker, 1024)
+      .through(text.utf8Decode[F])
+      .compile
+      .toList
+      .map(_.mkString)
+      .map(HtmlContent(_))
 }
 
 object CrawlerFileSystem {
   import FileImplicitUtils._
-  val defaultDir = new File("./files")
+  val defaultDir    = new File("./files")
+  val errorPagePath = new File("./resources/static/err.html")
+  val indexPagePath = new File(s"./$defaultDir/index.html")
 
   def withDefaultPath: File => File = defaultDir / _.getName
 

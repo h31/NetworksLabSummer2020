@@ -13,7 +13,7 @@ object App extends IOApp {
       .flatMap { implicit blocker =>
         for {
           config <- Stream.eval(Config.load[IO])
-          _      <- Server.blazeHttp(config).start
+          _      <- Server.blazeHttp[IO](config).start
         } yield ()
       }
       .compile
