@@ -29,10 +29,42 @@ final class CrawlerFileSystem[F[_]: Sync] private (
 
     val dirs = List("css", "js", "img")
 
+    def exists: F[Option[Unit]] =
+      file.exists[F](blocker, defaultDir.toPath).map {
+        case true  => Some(())
+        case false => None
+      }
+
+    def deleteRecursively(file: File): F[Boolean] = {
+      def childrenOf(file: File): List[File] = Option(file.listFiles()).getOrElse(Array.empty).toList
+      @annotation.tailrec
+      def loop(files: List[File]): Boolean = files match {
+        case Nil ⇒ true
+        case child :: parents if child.isDirectory && child.listFiles().nonEmpty ⇒
+          loop((childrenOf(child) :+ child) ++ parents)
+        case fileOrEmptyDir :: rest ⇒
+          fileOrEmptyDir.delete()
+          loop(rest)
+      }
+
+      Sync[F].delay {
+        if (!file.exists()) false
+        else loop(childrenOf(file) :+ file)
+      }
+    }
+
+    def deleteIfExists: File => F[Unit] =
+      file =>
+        exists.flatMap {
+          _.fold(Sync[F].pure(())) { _ =>
+            deleteRecursively(file).void
+          }
+        }
+
     def createDir(f: File): F[Path] =
       file.createDirectory[F](blocker, f.toPath)
 
-    file.deleteIfExists(blocker, defaultDir.toPath) >> createDir(defaultDir) >> dirs
+    deleteIfExists(defaultDir) >> createDir(defaultDir) >> dirs
       .traverse(dir => createDir(new File(s"$defaultDir/$dir")))
       .void
   }
